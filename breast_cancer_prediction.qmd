@@ -1,0 +1,518 @@
+---
+title: Breast Cancer Classification
+---
+
+# Introduction
+
+**Probelem:** Automate the diagnosis of breast cancer.
+
+**Background:** Breast cancer is one of the most prevalent forms of cancer among woment. Early detection and diagnosis (malignant or benign) is crucial for a positive response to treatment. 
+
+**Goal:** The goal of the project is to train a machine learning model to predict whether breast tissue is malignant or benign. This classification will be based on several features that were extracted from microscopy images of fine needle aspirate of a breast tissue. 
+
+**Data:** More information on the data can be found [here](https://www.kaggle.com/datasets/uciml/breast-cancer-wisconsin-data/data) and [here](https://archive.ics.uci.edu/dataset/17/breast+cancer+wisconsin+diagnostic)
+
+```{python}
+# import libraries
+import os
+from pathlib import Path
+
+import pandas as pd
+import numpy as np
+
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
+from sklearn.metrics import confusion_matrix, accuracy_score, roc_curve, auc, f1_score
+
+import pickle
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+import plotly.express as px
+
+```
+
+```{python}
+# read in data
+data_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\data")
+data = pd.read_csv(data_dir / 'breast_cancer.csv')
+```
+
+# Exploratory Data Analysis
+
+The data include ten morphological and texture based features of cell nuclei in each image including the mean, standard error, and largest value (mean of three largest values) for each feature. The list below shows all the features that will be used for classification.
+
+- radius 
+
+- texture (standard deviation of gray-scale values)
+
+- perimeter
+
+- area
+
+- smoothness
+
+- compactness
+
+- concavity
+
+- concave points
+
+- symmetry
+
+- fractal dimension
+
+We can get a good idea of what features will be important in the classification model by looking at the distributions of each feature individually subsetted by the diagnosis. Because there are 30 feature columns we will only look at the mean of each the features above.
+
+```{python}
+# subset data for features ending in _mean and diagnosis
+mean_df = (
+    data
+    .filter(regex='mean|diagnosis')
+)
+
+mean_cols = [col for col in mean_df.columns if 'mean' in col]
+
+for col in mean_cols:
+    plt.figure(figsize=(10,6))
+
+    sns.histplot(
+        mean_df,
+        x=col,
+        hue='diagnosis',
+        kde=True,
+        stat='density'
+    )
+    
+    plt.title(f'Distribution of {col}')
+    plt.show()
+```
+
+A few observations based on these plots:
+
+- It appears (with the a few exceptions) that the malignant group generally has a broader distribution comapared to the benign group which appears to have a tighter spread (more on this later).
+
+- With the exception of fractal dimension, symmetry, and smoothness there appears to be good separation between the malignant and benign distribtusions
+
+- The malignant group appears to have higher values on average compared to the benign group
+
+I am curious about the spread of the malignant and benign groups. Below is a table showing the standard deviations of the ten features.
+
+```{python}
+(
+    data
+    .filter(regex='mean|diagnosis')
+    .groupby('diagnosis')
+    .agg('std')
+)
+```
+
+For most of the features the standard deviation of the malginant group is larger than benign group. The features where this is most apparent are the morphological features such as radius (3.20 vs 1.78) and perimeter (21.85 vs 11.81). It is generally known that cancer cells have irregular shapes and sizes some being larger and some being smaller than normal cells. This is a reasonable explanation for the wider spread of morphological features in the malignant group.
+
+One of biggest concerns with classification tasks is how balanced the outcome variable is. The barchart below shows the total number of malignant and benign breat tissue samples.
+
+```{python}
+# diagnosis counts
+ax = sns.countplot(
+    data,
+    x='diagnosis'
+)
+
+for p in ax.patches:
+    height = p.get_height()
+    ax.text(
+        p.get_x() + p.get_width() / 2,
+        height + 3,
+        f'{height:.0f}',
+        ha="center",
+    )
+
+plt.title('Outcome Count')
+plt.xlabel('Diagnosis')
+plt.show()
+
+```
+
+63% of the observations are benign. The outcome is slightly unbalanced but no to the point where we would need to use any imputation  or oversampling method.
+
+# Predictive Modeling
+
+The following five machine learning algorithms will be trained and evaluated to verify which is the most accurate for this problem:
+
+- K-Nearest Neighbors (KNN)
+
+- Logistic Regression
+
+- Support Vector Classifier (SVC)
+
+- Decision Tree Classifier
+
+- Random Forest Classifier
+
+## Data Preprocessing
+
+Three preprocessing steps are necessary before training any machine learning algorithms: feature scaling, outcome binarization, and train test split. While feature scaling is necessary for some machine learning algorithms it is less imortant for others. Machine learning algorithms that rely on measuring distances between data points and boundaries require feature scaling to ensure each feature contributes equally to the classification. KNN, logistic regression, and support vector classifier require feature scaling while decision tree and random forest classifiers do not because they are non-parametric machine learning models.
+
+**Outcome Binarization**
+
+Most machine learning algorithms in the Scikit-Learn library assume the outcome to be binary so we will dichotomize the diagnosis as follows:
+
+- malignant = 1
+
+- benign = 0
+
+**Splitting Data**
+
+Before splitting the data we want to check if there are any missing values in any of the columns
+
+```{python}
+data.isnull().sum()
+```
+
+It appears there are no missing values in any features except for the last column `Unnamed: 32` which are all empty. Next we will remove the empty column and the id column since it is not relevant to predicting diagnosis outcome.
+
+```{python}
+clean_data = (
+    data
+    .drop(columns=['id', 'Unnamed: 32'], axis=1)
+    .assign(diagnosis = np.where(data['diagnosis'] == 'M', 1, 0))
+)
+```
+
+We will use a 70:30 training:test split which will result in 398 training samples and 171 testing samples. We will also stratify by diagnosis to ensure we the same proportions of malignant to benign samples in the training and testing set.
+
+```{python}
+# split into features and labels
+X = clean_data.drop(columns=['diagnosis'], axis=1)
+y = clean_data[['diagnosis']]
+
+x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.3, stratify=y, random_state=2024)
+
+# ensure class proportions was preserver between training and testing splits
+fig, ax = plt.subplots(1,2)
+
+sns.countplot(
+    y_train,
+    x='diagnosis',
+    ax=ax[0]
+    )
+
+ax[0].set_title('Count of Training Labels')
+
+sns.countplot(
+    y_test,
+    x='diagnosis',
+    ax=ax[1]
+    )
+
+ax[1].set_title('Count of Testing Labels')
+```
+
+The plot above verifies that the proportion of positive and negative labels was preserved between the training and testing set.
+
+We will perform the scaling before the training of the algorithms where it is required.
+
+## Model Training
+
+### K-Nearest Neighbors
+
+The first model we will use is the K-Nearest neighbors model. This model works by assigning a label to a value based on its K nearest neighbors. The distance between points must be calculated using some distance measure. Below is an explanation of each hyperparameter. Because this model relys on distances between points we will scale the data before training.
+
+**Hyperparameters**
+
+- n_neighbors: The number of nearest neighbors to consider when making a prediction. Larger values lead to a more generalized prediction with the risk of underfitting the data. Small values lead to a model that is more sensitive to noise in the data potentially leading to overfitting.
+
+- weights: Determines how the distance between the point of interest and its nearest neighbors influence the prediction. Uniform weights consider all neighbors equally when getting a prediction. With distance weights closer neighbors have a larger impact on the prediction.
+
+- algorithm: The algorithm that is used to compute the neighbors: brute force, ball tree, KD tree, auto
+
+- leaf_size: Parameter passed to BallTree or KDTree algorithm, can effect the speed of the training
+
+- p: power parameter passed to the Minkowski metric. When p = 1 distance metric is city block, when p = 2 distance metric is euclidean. 
+
+We will be using a randomized search with a 5 fold cross validation to train the model and tune the hyperparameters.
+
+```{python}
+#| echo: true
+
+scaler = StandardScaler()
+
+x_train_scaled = scaler.fit_transform(x_train)
+x_test_scaled = scaler.transform(x_test)
+
+y_train = np.array(y_train).ravel()
+y_test = np.array(y_test).ravel()
+
+knn_param_dist = {
+    'n_neighbors': np.arange(1,31),
+    'weights': ['uniform', 'distance'],
+    'algorithm': ['ball_tree', 'kd_tree', 'brute', 'auto'],
+    'leaf_size': np.arange(10, 51, 5),
+    'p': [1,2]
+}
+
+knn = KNeighborsClassifier()
+
+knn_random_search = RandomizedSearchCV(
+    knn, 
+    param_distributions=knn_param_dist,
+    n_iter=100,
+    cv=5,
+    n_jobs=1,
+    random_state=2024
+)
+
+knn_random_search.fit(x_train_scaled, y_train)
+```
+
+The table below shows the hyperparameters that were chosen to produce the best result.
+
+```{python}
+pd.DataFrame([knn_random_search.best_params_])
+```
+
+We will be using the accuracy along with an ROC curve and AUC score to evaluate how well this model and future models perform. 
+
+```{python}
+knn_preds = knn_random_search.predict(x_test_scaled)
+knn_probs = knn_random_search.predict_proba(x_test_scaled)[:, 1]
+
+accuracy = accuracy_score(y_test, knn_preds)
+cm = confusion_matrix(y_test, knn_preds)
+
+fpr, tpr, thresholds = roc_curve(y_test, knn_probs)
+
+tick_labels = data[['diagnosis']].drop_duplicates()
+
+def resultsPlot(confusion_matrix, fpr, tpr):
+
+    roc_auc = auc(fpr, tpr)
+
+    fig, ax = plt.subplots(1,2, figsize=(9.5,5))
+    sns.heatmap(
+        confusion_matrix, 
+        annot=True, 
+        fmt='d', 
+        cmap='Blues', 
+        xticklabels=['B', 'M'], 
+        yticklabels=['B', 'M'],
+        ax=ax[0])
+    ax[0].set_title('Confusion Matrix')
+    ax[0].set_xlabel('Predicted Label')
+    ax[0].set_ylabel('True Label')
+
+    ax[1].plot(
+        fpr,
+        tpr,
+        color='darkorange',
+        lw=2,
+        label=f'AUC = {roc_auc:.2f}'
+    )
+    ax[1].plot(
+        [0,1], 
+        [0,1],
+        color='navy',
+        lw=2,
+        linestyle='--'
+    )
+    ax[1].set_xlabel('False Positive Rate')
+    ax[1].set_ylabel('True Positive Rate')
+    ax[1].set_title('ROC Curve')
+    ax[1].legend(loc='lower right')
+
+resultsPlot(cm, fpr, tpr)
+```
+
+This model performed very well with an accuracy of 96.5% and AUC score of 0.997. As you can see from the confusion matrix there were 6 false negatives where the model incorrectly predicted a sample as benign when it was malignant.
+
+### Logistic Regression
+
+The next model we will use is the logistic regression. Traditionally the logistic regression returns odds of a value being positive. However we can use the logistic regression as a classifier by converting the odds into probabilities and then setting a threshold to classify the samples into two categories. Because this project is primarily concerned with prediction I won't discuss the mathematical model and the effects of different beta coefficients. 
+
+```{python}
+lr = LogisticRegression(fit_intercept=True)
+
+lr.fit(x_train_scaled, y_train)
+
+lr_probs = lr.predict_proba(x_test_scaled)[:,1]
+threshs = np.arange(0.1,1,0.01)
+
+accs = []
+for thresh in threshs:
+    preds = lr_probs > thresh
+    acc = accuracy_score(y_test, preds)
+    accs.append(acc)
+
+acc_df = pd.DataFrame(
+    {
+        'threshs': threshs,
+        'accs': accs})
+
+plt.plot(threshs, accs)
+plt.xlabel('Thresholds')
+plt.ylabel('Accuracy')
+```
+
+According to the plot above the accuracy reaches a maximum at a threshold around 0.5, so we will us that as our cutoff. 
+
+```{python}
+lr_preds = lr_probs > 0.5
+
+fpr, tpr, threshold = roc_curve(y_test, lr_probs)
+
+lr_cm = confusion_matrix(y_test, lr_preds)
+
+resultsPlot(lr_cm, fpr, tpr)
+
+```
+
+The logistic regression also did a very good job with this classification task with an accuracy score of 97.7% and an AUC of 0.995. Similarly to the KNN model the logistic regression misclassified 4 malignant samples as benign.
+
+### Decision Tree
+
+The next model we will evaluate is a simple decision tree. The decision tree model works by using the features to split the samples into different buckets for classification. Due to the way a decision tree works feature scaling is not necessary for this model. The decision tree has the following hyperparameters that need to be tuned.
+
+- criterion: the function to measure the quality of the split at each node, options are gini impurity, log loss, and entropy
+
+- splitter: how the algorithm determines the split at each node, options are best and random
+
+- maximum depth: controls how deep the tree can get. The deeper the tree the higher likelihood of overfitting, the shallower the tree the higher the likelihood of underfitting.
+
+- minimum samples splt: the minimum number of samples needed before an internal leaf node splits
+
+- minimum samples leaf: the minimum number of samples required for a node to be a leaf node
+
+- max features: the number of samples that are considered for each leaf node. We will be using either log2(number of features) or sqrt(number of features).
+
+Similar to the KNN model we will be using a randomized cross validation search for training and tuning the decision tree model.
+
+```{python}
+dt_tune_dist = {
+    'criterion': ['gini', 'entropy', 'log_loss'],
+    'splitter': ['best', 'random'],
+    'max_depth': np.arange(1,21,1),
+    'min_samples_split': np.arange(2,21,1),
+    'min_samples_leaf': np.arange(1,21,1),
+    'max_features': ['log2', 'sqrt']
+}
+
+dt = DecisionTreeClassifier()
+
+dt_random_search = RandomizedSearchCV(
+    dt,
+    param_distributions=dt_tune_dist,
+    n_iter=100,
+    cv=5,
+    n_jobs=1,
+    random_state=2024
+)
+
+dt_random_search.fit(x_train, y_train)
+
+```
+
+```{python}
+
+dt_best_model = dt_random_search.best_estimator_
+dt_feature_imp = dt_best_model.feature_importances_
+
+dt_feature_imp_df = pd.DataFrame({
+    'feature': x_train.columns,
+    'importance': dt_feature_imp
+}).sort_values('importance', ascending=False)
+
+sns.barplot(
+    dt_feature_imp_df,
+    y='feature',
+    x='importance'
+)   
+
+plt.title('Decision Tree Feature Importance')
+
+```
+
+```{python}
+dt_preds = dt_random_search.predict(x_test)
+dt_probs = dt_random_search.predict_proba(x_test)[:, 1]
+
+dt_cm = confusion_matrix(y_test, dt_preds)
+
+dt_fpr, dt_tpr, thresholds = roc_curve(y_test, dt_probs)
+
+resultsPlot(dt_cm, dt_fpr, dt_tpr)
+
+```
+
+### Random Forest
+
+```{python}
+
+# rf_para_dist = {
+#     'n_estimators': np.arange(1,500,1),
+#     'criterion': ['gini', 'entropy', 'log_loss'],
+#     'max_depth': np.arange(1,21,1),
+#     'min_samples_split': np.arange(2,21,1),
+#     'min_samples_leaf': np.arange(1,21,1),
+#     'max_features': ['log2', 'sqrt']
+# }
+
+# rf = RandomForestClassifier()
+
+# rf_random_search = RandomizedSearchCV(
+#     rf,
+#     param_distributions=rf_para_dist,
+#     n_iter=100,
+#     cv=5,
+#     n_jobs=1,
+#     random_state=2024
+# )
+
+# rf_random_search.fit(x_train, y_train)
+
+```
+
+```{python}
+# ml_model_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\ml_models")
+# rf_pickle_path = ml_model_dir / 'breast_cancer_rf_model.pkl'
+# with open(rf_pickle_path, 'wb') as file:
+#     pickle.dump(rf_random_search, file)
+```
+
+```{python}
+ml_models_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\ml_models")
+with open(ml_models_dir / 'breast_cancer_rf_model.pkl', 'rb') as file:
+    rf_random_search = pickle.load(file)
+
+rf_best_model = rf_random_search.best_estimator_
+rf_feature_imp = rf_best_model.feature_importances_
+rf_feature_imp_df = pd.DataFrame({
+    'feature': x_train.columns,
+    'importance': rf_feature_imp
+}).sort_values('importance', ascending=False)
+
+sns.barplot(
+    rf_feature_imp_df,
+    y='feature',
+    x='importance'
+)
+plt.title('Random Forest Feature Importance')
+
+```
+
+```{python}
+
+rf_preds = rf_random_search.predict(x_test)
+rf_cm = confusion_matrix(y_test, rf_preds)
+rf_probs = rf_random_search.predict_proba(x_train)[:, 1]
+rf_fpr, rf_tpr, thresholds = roc_curve(y_test, rf_preds)
+
+
+resultsPlot(rf_cm, rf_fpr, rf_tpr)
+```
+
+## Comparing Models

@@ -1,0 +1,26 @@
+project:
+  type: website
+
+website:
+  google-analytics: "G-DBRES1DZDQ"
+  title: "My Portfolio"
+  navbar:
+    left:
+      - href: index.qmd
+        text: About Me
+      - text: Projects
+        menu:
+          - href: breast_cancer_prediction.qmd
+            text: Breast Cancer Prediction
+
+format:
+  html:
+    theme: sandstone
+    css: styles.css
+    toc: true
+    code-fold: true
+    engine: jupyter
+    author: Aaron Morris
+
+
+

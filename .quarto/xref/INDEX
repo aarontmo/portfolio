@@ -1,0 +1,17 @@
+{
+  "another_page.qmd": {
+    "another_page.html": "5d1e0526"
+  },
+  "breast_cancer_prediction.qmd": {
+    "breast_cancer_prediction.html": "5d7234b0"
+  },
+  "index.qmd": {
+    "index.html": "b56fd6c9"
+  },
+  "portfolio_code/breast_cancer_prediction.qmd": {
+    "breast_cancer_prediction.html": "86f412a1"
+  },
+  "portfolio_code/index.qmd": {
+    "index.html": "dc1a7243"
+  }
+}

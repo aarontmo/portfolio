@@ -1,0 +1,57 @@
+---
+title: "About Me"
+---
+
+![](C:\Users\aaron\Desktop\projects\breast_cancer_prediction\data\images\portfolio_profile_pic.jpg)
+
+Welcome to my corner of the web! I'm Aaron Morris, a passionate Data Scientist with a strong background in Applied Biostatistics Data Science. My journey through academia and professional experiences has molded me into a data enthusiast, adept at turning complex data into meaningful insights.
+
+# My Journey
+I hold a Master’s degree in Applied Biostatistics from Boston University and a Bachelor’s degree in Biochemistry with a minor in Statistics from Brigham Young University - Idaho. These academic experiences laid the groundwork for my expertise in data analysis, machine learning, and statistical modeling.
+
+# My Expertise
+Over the years, I've honed my skills in various aspects of data science:
+
+**Predictive Data Modeling & Exploratory Data Analysis:** I love diving deep into data to uncover patterns and build models that predict future trends (see [Predicting Breast Cancer](breast_cancer_prediction.qmd)).
+
+**Data Visualization:** Proficient in ggplot2, matplotlib, plotly, and seaborn, I create visuals that tell compelling stories from data.
+
+**Programming:** I'm well-versed in Python (Pandas, Numpy, Scikit-Learn, Scikit-Image, Statsmodels, Selenium) and R, making me versatile in handling diverse data science projects.
+
+**SQL & Jupyter Notebook:** These tools are integral to my workflow, helping me manage and analyze data efficiently.
+
+**Image Processing & Classical Image Segmentation:** I have experience in processing and analyzing complex image data, particularly in the biomedical field.
+
+**Git Source Control:** Collaboration and version control are crucial in my projects, ensuring smooth teamwork and project management.
+
+# Professional Adventures
+
+**Elephas Biosciences**
+
+At Elephas Biosciences, I worked as a Data Scientist, providing analytical support for various R&D projects. My role involved quality control report automation, differential analysis, fold change analysis, and microscopy image processing. One of my proudest achievements was reducing assay time by 67% through fold change analysis on cytokine concentration levels.
+
+**Boston University School of Public Health**
+
+As a Graduate Research Assistant, I delved into MRI image processing to predict brain tumor survivability based on gene mutations. I developed coefficient images using Python and Numpy, extracted quantitative features with Pyradiomics, and used machine learning models to predict gene mutations.
+
+In my role as a Research Data Analyst, I supported chronic kidney disease research in Nicaragua. I computed summary statistics, built visualizations, and developed regression models to investigate relationships between health indicators and demographic traits.
+
+**BYU-Idaho Institutional Data and Analysis Services**
+
+Here, I transformed messy data into clean, actionable insights using R programming and the tidyverse. I created and maintained dashboards in Power BI, and automated data gathering processes, enhancing the efficiency of data management.
+
+# Beyond Data
+
+When I'm not immersed in data, you'll likely find me enjoying the great outdoors. I love hiking, camping, and rock climbing. I also have a passion for playing pickleball, a sport that keeps me active and competitive.
+
+# Let's Connect
+
+I believe in the power of collaboration and am always eager to connect with like-minded individuals. Feel free to explore my projects and reach out to me on LinkedIn. Let's turn data into actionable insights together!
+
+Contact Me:
+
+Email: aaronmorris9696@gmail.com
+
+LinkedIn: https://www.linkedin.com/in/aaron-morris-201517/
+
+Thank you for visiting my portfolio. I look forward to connecting with you!

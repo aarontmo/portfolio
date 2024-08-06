@@ -1,0 +1,4 @@
+- source: project
+  quarto-pub:
+    - id: 8048406b-7ea3-4a32-add7-8843a89a6159
+      url: 'https://aarontmo.quarto.pub/my-portfolio'
