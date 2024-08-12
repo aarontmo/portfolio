@@ -1,10 +1,10 @@
 ---
 title: "About Me"
 ---
-
-![](C:\Users\aaron\Desktop\projects\breast_cancer_prediction\data\images\portfolio_profile_pic.jpg)
+![](data\images\portfolio_profile_pic.jpg){width=20%}
 
 Welcome to my corner of the web! I'm Aaron Morris, a passionate Data Scientist with a strong background in Applied Biostatistics Data Science. My journey through academia and professional experiences has molded me into a data enthusiast, adept at turning complex data into meaningful insights.
+
 
 # My Journey
 I hold a Master’s degree in Applied Biostatistics from Boston University and a Bachelor’s degree in Biochemistry with a minor in Statistics from Brigham Young University - Idaho. These academic experiences laid the groundwork for my expertise in data analysis, machine learning, and statistical modeling.
@@ -52,6 +52,6 @@ Contact Me:
 
 Email: aaronmorris9696@gmail.com
 
-LinkedIn: https://www.linkedin.com/in/aaron-morris-201517/
+LinkedIn: [Linkedin](https://www.linkedin.com/in/aaron-morris-201517/)
 
 Thank you for visiting my portfolio. I look forward to connecting with you!

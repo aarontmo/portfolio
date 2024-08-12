@@ -1,19 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://aarontmo.quarto.pub/my-portfolio/portfolio_code/index.html</loc>
-    <lastmod>2024-08-05T22:42:42.332Z</lastmod>
-  </url>
-  <url>
     <loc>https://aarontmo.quarto.pub/my-portfolio/index.html</loc>
-    <lastmod>2024-08-05T22:42:42.332Z</lastmod>
+    <lastmod>2024-08-08T22:05:25.520Z</lastmod>
   </url>
   <url>
     <loc>https://aarontmo.quarto.pub/my-portfolio/breast_cancer_prediction.html</loc>
-    <lastmod>2024-08-06T19:30:48.980Z</lastmod>
-  </url>
-  <url>
-    <loc>https://aarontmo.quarto.pub/my-portfolio/portfolio_code/breast_cancer_prediction.html</loc>
-    <lastmod>2024-08-06T19:30:48.980Z</lastmod>
+    <lastmod>2024-08-12T22:04:39.094Z</lastmod>
   </url>
 </urlset>

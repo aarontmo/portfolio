@@ -12,6 +12,10 @@ website:
         menu:
           - href: breast_cancer_prediction.qmd
             text: Breast Cancer Prediction
+      - href: https://www.linkedin.com/in/aaron-morris-201517/
+        text: Linkedin
+      - href: https://github.com/aarontmo?tab=repositories
+        text: Github
 
 format:
   html:

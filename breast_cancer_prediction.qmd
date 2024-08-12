@@ -24,10 +24,12 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.svm import SVC
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
-from sklearn.metrics import confusion_matrix, accuracy_score, roc_curve, auc, f1_score
+from sklearn.metrics import confusion_matrix, accuracy_score, roc_curve, auc, f1_score, classification_report
+
+from scipy.stats import sem
 
 import pickle
 
@@ -79,7 +81,7 @@ mean_df = (
 mean_cols = [col for col in mean_df.columns if 'mean' in col]
 
 for col in mean_cols:
-    plt.figure(figsize=(10,6))
+    plt.figure(figsize=(9.5,6))
 
     sns.histplot(
         mean_df,
@@ -147,8 +149,6 @@ The following five machine learning algorithms will be trained and evaluated to 
 - K-Nearest Neighbors (KNN)
 
 - Logistic Regression
-
-- Support Vector Classifier (SVC)
 
 - Decision Tree Classifier
 
@@ -248,35 +248,45 @@ x_test_scaled = scaler.transform(x_test)
 y_train = np.array(y_train).ravel()
 y_test = np.array(y_test).ravel()
 
-knn_param_dist = {
-    'n_neighbors': np.arange(1,31),
-    'weights': ['uniform', 'distance'],
-    'algorithm': ['ball_tree', 'kd_tree', 'brute', 'auto'],
-    'leaf_size': np.arange(10, 51, 5),
-    'p': [1,2]
-}
+# knn_param_dist = {
+#     'n_neighbors': np.arange(1,31),
+#     'weights': ['uniform', 'distance'],
+#     'algorithm': ['ball_tree', 'kd_tree', 'brute', 'auto'],
+#     'leaf_size': np.arange(10, 51, 5),
+#     'p': [1,2]
+# }
 
-knn = KNeighborsClassifier()
+# knn = KNeighborsClassifier()
 
-knn_random_search = RandomizedSearchCV(
-    knn, 
-    param_distributions=knn_param_dist,
-    n_iter=100,
-    cv=5,
-    n_jobs=1,
-    random_state=2024
-)
+# knn_random_search = RandomizedSearchCV(
+#     knn, 
+#     param_distributions=knn_param_dist,
+#     n_iter=100,
+#     cv=5,
+#     n_jobs=1,
+#     random_state=2024
+# )
 
-knn_random_search.fit(x_train_scaled, y_train)
+# knn_random_search.fit(x_train_scaled, y_train)
+```
+
+```{python}
+# ml_model_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\ml_models")
+# knn_pickle_path = ml_model_dir / 'breast_cancer_knn_model.pkl'
+# with open(knn_pickle_path, 'wb') as file:
+#     pickle.dump(knn_random_search, file)
 ```
 
 The table below shows the hyperparameters that were chosen to produce the best result.
 
 ```{python}
+
+ml_models_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\ml_models")
+with open(ml_models_dir / 'breast_cancer_knn_model.pkl', 'rb') as file:
+    knn_random_search = pickle.load(file)
+
 pd.DataFrame([knn_random_search.best_params_])
 ```
-
-We will be using the accuracy along with an ROC curve and AUC score to evaluate how well this model and future models perform. 
 
 ```{python}
 knn_preds = knn_random_search.predict(x_test_scaled)
@@ -328,7 +338,13 @@ def resultsPlot(confusion_matrix, fpr, tpr):
 resultsPlot(cm, fpr, tpr)
 ```
 
-This model performed very well with an accuracy of 96.5% and AUC score of 0.997. As you can see from the confusion matrix there were 6 false negatives where the model incorrectly predicted a sample as benign when it was malignant.
+```{python}
+pd.DataFrame(
+    classification_report(y_test, knn_preds, output_dict=True)['1'],
+    index=[1]).loc[:, ['precision', 'recall', 'f1-score']]
+```
+
+As shown by the validation results above, this model performed very well with an f1-score of 0.95 and AUC score of 0.997. As you can see from the confusion matrix there were 6 false negatives where the model incorrectly predicted a sample as benign when it was malignant.
 
 ### Logistic Regression
 
@@ -371,7 +387,13 @@ resultsPlot(lr_cm, fpr, tpr)
 
 ```
 
-The logistic regression also did a very good job with this classification task with an accuracy score of 97.7% and an AUC of 0.995. Similarly to the KNN model the logistic regression misclassified 4 malignant samples as benign.
+```{python}
+pd.DataFrame(
+    classification_report(y_test, lr_preds, output_dict=True)['1'],
+    index=[1]).loc[:, ['precision', 'recall', 'f1-score']]
+```
+
+The logistic regression also did a very good job with this classification task with an f1-scor of 0.97 and an AUC of 0.995. Similarly to the KNN model the logistic regression misclassified 4 malignant samples as benign.
 
 ### Decision Tree
 
@@ -392,31 +414,40 @@ The next model we will evaluate is a simple decision tree. The decision tree mod
 Similar to the KNN model we will be using a randomized cross validation search for training and tuning the decision tree model.
 
 ```{python}
-dt_tune_dist = {
-    'criterion': ['gini', 'entropy', 'log_loss'],
-    'splitter': ['best', 'random'],
-    'max_depth': np.arange(1,21,1),
-    'min_samples_split': np.arange(2,21,1),
-    'min_samples_leaf': np.arange(1,21,1),
-    'max_features': ['log2', 'sqrt']
-}
+# dt_tune_dist = {
+#     'criterion': ['gini', 'entropy', 'log_loss'],
+#     'splitter': ['best', 'random'],
+#     'max_depth': np.arange(1,21,1),
+#     'min_samples_split': np.arange(2,21,1),
+#     'min_samples_leaf': np.arange(1,21,1),
+#     'max_features': ['log2', 'sqrt']
+# }
 
-dt = DecisionTreeClassifier()
+# dt = DecisionTreeClassifier()
 
-dt_random_search = RandomizedSearchCV(
-    dt,
-    param_distributions=dt_tune_dist,
-    n_iter=100,
-    cv=5,
-    n_jobs=1,
-    random_state=2024
-)
+# dt_random_search = RandomizedSearchCV(
+#     dt,
+#     param_distributions=dt_tune_dist,
+#     n_iter=100,
+#     cv=5,
+#     n_jobs=1,
+#     random_state=2024
+# )
 
-dt_random_search.fit(x_train, y_train)
+# dt_random_search.fit(x_train, y_train)
+
+# ml_model_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\ml_models")
+# dt_pickle_path = ml_model_dir / 'breast_cancer_dt_model.pkl'
+# with open(dt_pickle_path, 'wb') as file:
+#     pickle.dump(dt_random_search, file)
 
 ```
 
 ```{python}
+ml_models_dir = Path(r"C:\Users\aaron\Desktop\projects\breast_cancer_prediction\ml_models")
+with open(ml_models_dir / 'breast_cancer_dt_model.pkl', 'rb') as file:
+    dt_random_search = pickle.load(file)
+
 
 dt_best_model = dt_random_search.best_estimator_
 dt_feature_imp = dt_best_model.feature_importances_
@@ -431,10 +462,31 @@ sns.barplot(
     y='feature',
     x='importance'
 )   
-
 plt.title('Decision Tree Feature Importance')
 
+
 ```
+
+The bar chart above shows the feature importances of the features that were used in the decision tree. The worst perimeter was the main feature that was used to make the prediction. The worst perimeter is defined at the mean of the three largest cell perimeters.
+
+```{python}
+
+plot_tree(
+    dt_best_model,
+    filled=False,
+    feature_names=x_train.columns,
+    rounded=True
+)
+img_dir = Path(os.getcwd() + '/data/images')
+img_file = 'breast_cancer_dt.png'
+plt.savefig(img_dir / img_file)
+plt.close()
+
+```
+
+The image below shows the actual decision tree that was used to make the predictions. Each node shows the feature that was used and the cutoff for that feature. This aids in the understanding of how decision trees work.
+
+![Decision Tree Plot](data/images/breast_cancer_dt.png){.lightbox}
 
 ```{python}
 dt_preds = dt_random_search.predict(x_test)
@@ -448,7 +500,29 @@ resultsPlot(dt_cm, dt_fpr, dt_tpr)
 
 ```
 
+```{python}
+pd.DataFrame(
+    classification_report(y_test, dt_preds, output_dict=True)['1'],
+    index=[1]).loc[:, ['precision', 'recall', 'f1-score']]
+```
+
+Because of the simplicity of the decision tree model it tends not to perform quite as well as other more complex models. The model returned an f1-score of 0.84 and an AUC score of 0.93. The model misclassified 12 malignant samples as benign (false negative) and 8 benign samples as malignant (false positive).
+
 ### Random Forest
+
+The random forest model is an extension of the decision tree model. The randome forest model fits several smaller decision trees and outputting the mode prediction for each sample. There several pros and cons to decision trees; the main pro is that is more accurate that a single decision tree because it combines several weak predictors to make a more accurate prediction. One of the main cons of a random forest classifier is that the increased complexity increases the training time and the ability to interpret the model. The hyperparameters to be tuned are shown below:
+
+- n_estimators: how many individual decision trees to train
+
+- criterion: the function to measure the quality of the split at each node, options are gini impurity, log loss, and entropy
+
+- maximum depth: controls how deep the tree can get. The deeper the tree the higher likelihood of overfitting, the shallower the tree the higher the likelihood of underfitting.
+
+- minimum samples splt: the minimum number of samples needed before an internal leaf node splits
+
+- minimum samples leaf: the minimum number of samples required for a node to be a leaf node
+
+- max features: the number of samples that are considered for each leaf node. We will be using either log2(number of features) or sqrt(number of features).
 
 ```{python}
 
@@ -504,6 +578,8 @@ plt.title('Random Forest Feature Importance')
 
 ```
 
+The plot above shows the feature importances for all the features that were used in the predictions. An obvious difference between this model and simple decision tree is that the random forest model uses all the features.
+
 ```{python}
 
 rf_preds = rf_random_search.predict(x_test)
@@ -515,4 +591,71 @@ rf_fpr, rf_tpr, thresholds = roc_curve(y_test, rf_preds)
 resultsPlot(rf_cm, rf_fpr, rf_tpr)
 ```
 
-## Comparing Models
+```{python}
+pd.DataFrame(
+    classification_report(y_test, rf_preds, output_dict=True)['1'],
+    index=[1]).loc[:, ['precision', 'recall', 'f1-score']]
+```
+
+The random forest model returned an f1-score of 0.93 and an AUC score 0.94. There were six false negatives and 3 false positives. The following section compares the accuracy of all the models to decide on the best model.
+
+# Conclusion
+
+We are able to easily compare models with the plot below. The plot below shows the mean accuracy of all iterations during the hyperparameter and training step of fitting the models along with the 95% confidence interval. Because we didn't use a randomized cross validation method to find the hyperparameters for the logistic regression model it is not included in the plot below.
+
+```{python}
+models = {
+    'knn': knn_random_search,
+    'dt': dt_random_search,
+    'rf': rf_random_search
+}
+dfs = []
+for name, model in models.items():
+    this_dict = {
+        f'mean_acc': model.cv_results_['mean_test_score']
+    }
+
+    this_df = pd.DataFrame(this_dict)
+    dfs.append(this_df)
+    
+model_res = pd.concat(dfs)
+nested_col = [['knn']*100, ['dt']*100, ['rf']*100]
+model_col = [item for sublist in nested_col for item in sublist]
+model_res['model'] = model_col
+
+
+final_df = (
+    model_res
+    .groupby('model')
+    .agg(
+        mean_val=('mean_acc', 'mean'),
+        conf_int=('mean_acc', lambda x: sem(x)*1.96))
+    .reset_index()
+)
+
+sns.scatterplot(
+    final_df,
+    y='model',
+    x='mean_val'
+)
+
+for i in range(final_df.shape[0]):
+    plt.errorbar(x=final_df['mean_val'][i], 
+                 y=final_df['model'][i],
+                 xerr=final_df['conf_int'][i], 
+                 fmt='o', color='black', capsize=5)
+
+plt.title('Mean Model Accuracy with Confidence Interval')
+plt.xlabel('Accuracy')
+plt.ylabel('')
+plt.yticks(range(3), labels=['Decision Tree', 'K-Nearest Neighbors', 'Random Forest'])
+
+plt.show()
+
+```
+
+As mentioned earlier all the machine learing models performed very well with this prediction task. Admittedly this dataset is very clean and very little transformations or feature processing was needed to achieve a high model accuracy. 
+
+When choosing a final model for prediction there are several factors that need to be considered: model accuracy, model simplicity, interpretability, and false positive vs false negative trade off. The last factor is particularly interesting because it requires some domain knowledge of the particular task at hand. Do we care more about catching everybody that has malignat breast cancer at the expense of falsely diagnosing those with benign cancer as malignant? Or do we care more about ensuring that we identify all those that are benign at the expense of misdiagnosing those with malignant breast cancer. 
+
+Returning to goal of predictions like this, to diagnose breast cancer early on in its course, I believe it is more beneficial to choose a model that has a high sensitivity. This ensures that we catch as many true positive cases early on as a preliminary diagnoses. In our case the logistic regression model had the highest sensitivity (0.94) of all the models we tested. The logistic regression also has the advantage of being highly interpretable which we didn't discuss in this project because we were only concerned with predictability. My susggestion for this data would be to use a logistic regression model to predict breast cancer type.
